@@ -3,8 +3,16 @@ name = "core"
 source = "path+from-root-2E654A91A5A21ADE"
 
 [[package]]
-name = "orderbook_predicate"
+name = "dummy_stablecoin"
 source = "member"
+dependencies = [
+    "standards",
+    "std",
+]
+
+[[package]]
+name = "standards"
+source = "git+https://github.com/FuelLabs/sway-standards?branch=master#8b2f0eddb9c05625d6bb61e735ebae1c81f9dd59"
 dependencies = ["std"]
 
 [[package]]

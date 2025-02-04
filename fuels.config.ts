@@ -1,9 +1,8 @@
 import { createConfig } from 'fuels';
 
 export default createConfig({
-  predicates: [
-    "./orderbook_predicate"
-  ],
+  predicates: ['./orderbook_predicate'],
+  contracts: ['./dummy_stablecoin'],
   output: './out',
 });
 

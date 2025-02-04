@@ -9,6 +9,11 @@
     "typescript": "^5.0.0"
   },
   "dependencies": {
-    "fuels": "^0.98.0"
+    "fuels": "^0.98.0",
+    "prettier": "^3.4.2"
+  },
+  "scripts": {
+    "sway-fmt": "cd orderbook_predicate && forc fmt && cd ..",
+    "fmt": "prettier --write \"./**/*.{js,ts,jsx,tsx,json,md}\""
   }
 }
