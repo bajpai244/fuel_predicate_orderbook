@@ -23,6 +23,9 @@ describe('Orderbook Predicate', async () => {
   const wallet = Wallet.fromPrivateKey(process.env.PRIVATE_KEY, fuelProvider);
   const recepient = Wallet.generate({ provider: fuelProvider });
 
+  const orderbookPredicate = new OrderbookPredicate({ provider: fuelProvider });
+  const orderbookPredicateAddress = orderbookPredicate.address;
+
   // send some eth to recepient
   await (await wallet.transfer(recepient.address, 10000)).waitForResult();
 
@@ -31,19 +34,31 @@ describe('Orderbook Predicate', async () => {
   const { contractId: contractIdAssetB, assetId: assetIdB } =
     await deployStableCoin(wallet);
 
+  // we use this asset to signal cancellation of the order
+  const { contractId: contractIdAssetC, assetId: assetIdC } =
+    await deployStableCoin(wallet);
+
   const stableCoinA = new DummyStablecoin(contractIdAssetA, wallet);
   const stableCoinB = new DummyStablecoin(contractIdAssetB, wallet);
+  const stableCoinC = new DummyStablecoin(contractIdAssetC, wallet);
 
   await mintAsset({
     stableCoin: stableCoinA,
     amount: bn(10),
-    reciever: recepient,
+    reciever: recepient.address,
   });
 
   await mintAsset({
     stableCoin: stableCoinB,
     amount: bn(10),
-    reciever: wallet,
+    reciever: wallet.address,
+  });
+
+  // Minting so that it can be used to signal cancellation of the order
+  await mintAsset({
+    stableCoin: stableCoinC,
+    amount: bn(10),
+    reciever: recepient.address,
   });
 
   console.log(
@@ -55,9 +70,6 @@ describe('Orderbook Predicate', async () => {
     'wallet balance of assetB after minting is,',
     await wallet.getBalance(assetIdB.bits)
   );
-
-  const orderbookPredicate = new OrderbookPredicate({ provider: fuelProvider });
-  const orderbookPredicateAddress = orderbookPredicate.address;
 
   // Step 1: Recepient deposits 10 of asset A to the predicate
 
@@ -86,7 +98,6 @@ describe('Orderbook Predicate', async () => {
 
   scriptRequest.addCoinInput(walletCoinsAssetB);
   scriptRequest.addCoinInput(orderbookPredicateCoin);
-
   scriptRequest.outputs = [];
   scriptRequest.addCoinOutput(recepient.address, 10, assetIdB.bits);
   scriptRequest.addCoinOutput(wallet.address, 10, assetIdA.bits);

@@ -3,6 +3,7 @@ import {
   createAssetId,
   ZeroBytes32,
   type WalletUnlocked,
+  Address,
 } from 'fuels';
 import { type DummyStablecoin, DummyStablecoinFactory } from '../../out';
 
@@ -27,12 +28,12 @@ export const mintAsset = async ({
 }: {
   stableCoin: DummyStablecoin;
   amount: BN;
-  reciever: WalletUnlocked;
+  reciever: Address;
 }) => {
   const call = stableCoin.functions.mint(
     {
       Address: {
-        bits: reciever.address.toB256(),
+        bits: reciever.toB256(),
       },
     },
     ZeroBytes32,
