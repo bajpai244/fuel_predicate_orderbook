@@ -5,7 +5,6 @@ use std::{auth::predicate_address, hash::*, inputs::*, outputs::*, u128::*};
 configurable {}
 
 // TODO:
-// - add cancellation
 // - add partial fill
 // - add support for custom sequencer
 fn main(
@@ -16,10 +15,23 @@ fn main(
     // this is to avoid any dust of any sort
     minimal_output_amount: u64,
     out_index: u64,
+    recepient: Address,
+    // this is the input index of the asset owned by the recepient, signalizing cancellation of the order
+    cancel: Option<u64>,
 ) -> bool {
+    match cancel {
+        Some(cancel_index) => {
+            let cancel_owner = input_coin_owner(cancel_index).unwrap();
+            if cancel_owner != recepient {
+                return false;
+            }
+            return true
+        },
+        _ => {},
+    }
+
     let in_count = input_count().as_u64();
-    let out_count = output_count().as_u64();
-    let this_predicate = predicate_address().unwrap();
+    let predicate_address = predicate_address().unwrap();
 
     let out_asset = output_asset_id(out_index).unwrap();
     let output_amount = output_amount(out_index).unwrap();
@@ -40,7 +52,7 @@ fn main(
         };
 
         if is_coin {
-            let is_owner_predicate = input_coin_owner(i).unwrap() == this_predicate;
+            let is_owner_predicate = input_coin_owner(i).unwrap() == predicate_address;
 
             if is_owner_predicate {
                 let coin_asset_id = input_asset_id(i).unwrap();
