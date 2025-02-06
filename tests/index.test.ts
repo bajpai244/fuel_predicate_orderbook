@@ -2,6 +2,8 @@ import {
   bn,
   Provider,
   ScriptTransactionRequest,
+  sha256,
+  toBytes,
   TransactionStatus,
   Wallet,
   type AssetId,
@@ -10,6 +12,7 @@ import {
 import { DummyStablecoin, OrderbookPredicate } from '../out/index';
 import { describe, test, expect, beforeEach } from 'bun:test';
 import { deployStableCoin, mintAsset } from './lib';
+import type { OrderbookPredicateInputs } from '../out/predicates/OrderbookPredicate';
 
 type TestContext = {
   wallet: WalletUnlocked;
@@ -84,14 +87,26 @@ describe('Orderbook Predicate', async () => {
     scriptRequest.addCoinOutput(recepient.address, 10, assetIdB.bits);
     scriptRequest.addCoinOutput(wallet.address, 10, assetIdA.bits);
 
-    orderbookPredicate.predicateData = [
-      assetIdB,
-      assetIdA,
-      9,
-      0,
-      { bits: recepient.address.toB256() },
-      undefined,
-    ];
+    // NOTE: default endianness is big endian
+    const assetIdBBytes = bn(assetIdB.bits).toBytes(32);
+    const assetIdABytes = bn(assetIdA.bits).toBytes(32);
+    const amountBytes = bn(10).toBytes(8);
+    const recepientAddressBytes = bn(recepient.address.toB256()).toBytes(32);
+
+    const buffer = Uint8Array.from([
+      ...assetIdBBytes,
+      ...assetIdABytes,
+      ...amountBytes,
+      ...recepientAddressBytes,
+    ]);
+
+    const orderHash = sha256(buffer);
+    console.log('orderHash:', orderHash);
+
+    const predicateData: OrderbookPredicateInputs = [0, undefined];
+
+    orderbookPredicate.predicateData = predicateData;
+
     orderbookPredicate.populateTransactionPredicateData(scriptRequest);
 
     await scriptRequest.estimateAndFund(wallet);
@@ -163,14 +178,7 @@ describe('Orderbook Predicate', async () => {
     scriptRequest.outputs = [];
     scriptRequest.addCoinOutput(recepient.address, 10, assetIdA.bits);
 
-    orderbookPredicate.predicateData = [
-      assetIdB,
-      assetIdA,
-      9,
-      0,
-      { bits: recepient.address.toB256() },
-      1,
-    ];
+    orderbookPredicate.predicateData = [0, 1];
     orderbookPredicate.populateTransactionPredicateData(scriptRequest);
 
     await scriptRequest.estimateAndFund(recepient);
@@ -209,9 +217,6 @@ const setup = async (): Promise<TestContext> => {
   const wallet = Wallet.fromPrivateKey(process.env.PRIVATE_KEY, fuelProvider);
   const recepient = Wallet.generate({ provider: fuelProvider });
 
-  const orderbookPredicate = new OrderbookPredicate({ provider: fuelProvider });
-  const orderbookPredicateAddress = orderbookPredicate.address;
-
   // send some eth to recepient
   await (await wallet.transfer(recepient.address, 10000)).waitForResult();
 
@@ -227,6 +232,16 @@ const setup = async (): Promise<TestContext> => {
   const stableCoinA = new DummyStablecoin(contractIdAssetA, wallet);
   const stableCoinB = new DummyStablecoin(contractIdAssetB, wallet);
   const stableCoinC = new DummyStablecoin(contractIdAssetC, wallet);
+
+  const orderbookPredicate = new OrderbookPredicate({
+    provider: fuelProvider,
+    configurableConstants: {
+      ASSET_ID_GET: assetIdB.bits,
+      ASSET_ID_SEND: assetIdA.bits,
+      MINIMAL_OUTPUT_AMOUNT: 9,
+      RECEPIENT: recepient.address.toB256(),
+    },
+  });
 
   return {
     wallet,
