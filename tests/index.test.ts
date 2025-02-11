@@ -3,7 +3,6 @@ import {
   Provider,
   ScriptTransactionRequest,
   sha256,
-  toBytes,
   TransactionStatus,
   Wallet,
   type AssetId,
@@ -137,7 +136,6 @@ describe('Orderbook Predicate', async () => {
       stableCoinC,
       orderbookPredicate,
       assetIdA,
-      assetIdB,
       assetIdC,
     } = textContext;
 
