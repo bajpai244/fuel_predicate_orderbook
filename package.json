@@ -19,6 +19,8 @@
     "sway-fmt": "cd orderbook_predicate && forc fmt && cd ..",
     "fmt": "prettier --write \"./**/*.{js,ts,jsx,tsx,json,md}\"",
     "gen-key": "bun scripts/gen_random_key.ts",
-    "deploy-assets": "bun scripts/deploy_assets.ts"
+    "deploy-assets": "bun scripts/deploy_assets.ts",
+    "fund-address": "bun scripts/fund_address.ts",
+    "exchange": "bun scripts/exchange.ts"
   }
 }

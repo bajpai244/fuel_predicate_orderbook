@@ -42,10 +42,10 @@ const main = async () => {
     'assets.json',
     JSON.stringify(
       {
-        usdcAddress,
-        ethAddress,
-        btcAddress,
-        fuelAddress,
+        usdc: usdcAddress,
+        eth: ethAddress,
+        btc: btcAddress,
+        fuel: fuelAddress,
       },
       null,
       2

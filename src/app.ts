@@ -1,5 +1,21 @@
+import { Address, ScriptTransactionRequest } from 'fuels';
 import express from 'express';
 import { ApiClient, DummyApiClient } from './lib';
+import { createAssetId, Provider, Wallet, ZeroBytes32 } from 'fuels';
+import assets from '../assets.json';
+import { OrderbookPredicate } from '../out';
+import type { OrderbookPredicateInputs } from '../out/predicates/OrderbookPredicate';
+
+if (!process.env.FUEL_PROVIDER_URL) {
+  throw new Error('FUEL_PROVIDER_URL is not set');
+}
+
+if (!process.env.PRIVATE_KEY) {
+  throw new Error('PRIVATE_KEY is not set');
+}
+
+const provider = new Provider(process.env.FUEL_PROVIDER_URL);
+const wallet = Wallet.fromPrivateKey(process.env.PRIVATE_KEY, provider);
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -27,6 +43,11 @@ app.post('/fill-order', async (req, res) => {
       sellTokenAmount,
       buyTokenAmount,
       predicateAddress,
+      // this is to get the configurable constants of the predicate
+      sellTokenAssetId,
+      buyTokenAssetId,
+      minimalOutputAmount,
+      recepient,
     } = req.body;
 
     // Validate required fields
@@ -35,7 +56,11 @@ app.post('/fill-order', async (req, res) => {
       !buyTokenName ||
       !sellTokenAmount ||
       !buyTokenAmount ||
-      !predicateAddress
+      !predicateAddress ||
+      !sellTokenAssetId ||
+      !buyTokenAssetId ||
+      !minimalOutputAmount ||
+      !recepient
     ) {
       return res.status(400).json({
         error: 'Missing required parameters',
@@ -74,7 +99,130 @@ app.post('/fill-order', async (req, res) => {
       });
     }
 
-    const transactionHash = '0x1234567890abcdef';
+    const orderBookPredicate = new OrderbookPredicate({
+      configurableConstants: {
+        ASSET_ID_SEND: sellTokenAssetId,
+        ASSET_ID_GET: buyTokenAssetId,
+        MINIMAL_OUTPUT_AMOUNT: minimalOutputAmount,
+        RECEPIENT: recepient,
+      },
+      provider,
+    });
+
+    if (orderBookPredicate.address.toB256() !== predicateAddress) {
+      return res.status(400).json({
+        error: 'Invalid predicate address',
+      });
+    }
+
+    const sellResources = await orderBookPredicate.getResourcesToSpend([
+      {
+        assetId: sellTokenAssetId,
+        amount: sellTokenAmount,
+      },
+    ]);
+
+    if (sellResources.length === 0) {
+      return res.status(400).json({
+        error: 'Not enough funds in predicate for sell token',
+      });
+    }
+
+    const buyResources = await wallet.getResourcesToSpend([
+      {
+        assetId: buyTokenAssetId,
+        amount: buyTokenAmount,
+      },
+    ]);
+
+    if (buyResources.length === 0) {
+      return res.status(400).json({
+        error: 'Not enough funds in wallet for buy token',
+      });
+    }
+
+    const scriptRequest = new ScriptTransactionRequest({
+      gasLimit: 100000,
+    });
+
+    scriptRequest.addResources(sellResources);
+    scriptRequest.addResources(buyResources);
+
+    scriptRequest.outputs = [];
+
+    scriptRequest.addCoinOutput(
+      Address.fromAddressOrString(recepient),
+      buyTokenAmount,
+      buyTokenAssetId
+    );
+
+    scriptRequest.addCoinOutput(
+      wallet.address,
+      sellTokenAmount,
+      sellTokenAssetId
+    );
+
+    const predicateData: OrderbookPredicateInputs = [0, undefined];
+    orderBookPredicate.predicateData = predicateData;
+
+    orderBookPredicate.populateTransactionPredicateData(scriptRequest);
+
+    await scriptRequest.estimateAndFund(wallet);
+
+    const userSellTokenBalanceBefore = await provider.getBalance(
+      recepient,
+      sellTokenAssetId
+    );
+    const userBuyTokenBalanceBefore = await provider.getBalance(
+      recepient,
+      buyTokenAssetId
+    );
+
+    const solverSellTokenBalanceBefore = await provider.getBalance(
+      wallet.address,
+      sellTokenAssetId
+    );
+    const solverBuyTokenBalanceBefore = await provider.getBalance(
+      wallet.address,
+      buyTokenAssetId
+    );
+
+    const result = await (
+      await wallet.sendTransaction(scriptRequest, {
+        enableAssetBurn: true,
+      })
+    ).waitForResult();
+
+    const userSellTokenBalanceAfter = await provider.getBalance(
+      recepient,
+      sellTokenAssetId
+    );
+    const userBuyTokenBalanceAfter = await provider.getBalance(
+      recepient,
+      buyTokenAssetId
+    );
+
+    const solverSellTokenBalanceAfter = await provider.getBalance(
+      wallet.address,
+      sellTokenAssetId
+    );
+    const solverBuyTokenBalanceAfter = await provider.getBalance(
+      wallet.address,
+      buyTokenAssetId
+    );
+
+    const sellTokenDelta = solverSellTokenBalanceAfter.sub(
+      solverSellTokenBalanceBefore
+    );
+    const buyTokenDelta = userBuyTokenBalanceAfter.sub(
+      userBuyTokenBalanceBefore
+    );
+
+    console.log(`solver recieved ${sellTokenDelta} of ${sellTokenName}`);
+    console.log(`user recieved ${buyTokenDelta} of ${buyTokenName}`);
+
+    console.log('transaction status:', result.status);
+    console.log('transaction hash:', result.id);
 
     res.status(200).json({
       status: 'success',
@@ -86,7 +234,7 @@ app.post('/fill-order', async (req, res) => {
         predicateAddress,
         sellValue,
         buyValue,
-        transactionHash,
+        transactionHash: result.id,
         timestamp: new Date().toISOString(),
       },
     });
