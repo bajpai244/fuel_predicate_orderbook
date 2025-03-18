@@ -1,8 +1,7 @@
 import { Address, ScriptTransactionRequest } from 'fuels';
 import express from 'express';
-import { ApiClient, DummyApiClient } from './lib';
-import { createAssetId, Provider, Wallet, ZeroBytes32 } from 'fuels';
-import assets from '../assets.json';
+import { DummyApiClient } from './lib';
+import { Provider, Wallet } from 'fuels';
 import { OrderbookPredicate } from '../out';
 import type { OrderbookPredicateInputs } from '../out/predicates/OrderbookPredicate';
 

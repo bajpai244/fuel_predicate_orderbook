@@ -9,6 +9,7 @@
     "typescript": "^5.0.0"
   },
   "dependencies": {
+    "@pythnetwork/hermes-client": "^2.0.0",
     "@types/express": "^5.0.0",
     "axios": "^1.7.9",
     "express": "^4.21.2",
@@ -21,6 +22,8 @@
     "gen-key": "bun scripts/gen_random_key.ts",
     "deploy-assets": "bun scripts/deploy_assets.ts",
     "fund-address": "bun scripts/fund_address.ts",
-    "exchange": "bun scripts/exchange.ts"
+    "exchange": "bun scripts/exchange.ts",
+    "mint_assets": "bun scripts/mint_assets.ts",
+    "dev": "bun --hot run src/app.ts"
   }
 }
