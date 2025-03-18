@@ -20,21 +20,24 @@ use std::{
     constants::DEFAULT_SUB_ID,
     context::msg_amount,
     logging::log,
+    storage::storage_string::*,
+    storage::*,
     string::String,
 };
 
 configurable {
     /// The decimals of the asset minted by this contract.
     DECIMALS: u8 = 9u8,
-    /// The name of the asset minted by this contract.
-    NAME: str[7] = __to_str_array("MyAsset"),
-    /// The symbol of the asset minted by this contract.
-    SYMBOL: str[5] = __to_str_array("MYTKN"),
 }
 
 storage {
     /// The total supply of the asset minted by this contract.
     total_supply: u64 = 0,
+    name: StorageString = StorageString {}, 
+    /// The symbol of a specific asset minted by this contract.
+    symbol: StorageString = StorageString {},
+    /// The decimals of a specific asset minted by this contract.
+    decimals: u8 = 0,
 }
 
 impl SRC3 for Contract {
@@ -159,9 +162,10 @@ impl SRC20 for Contract {
     #[storage(read)]
     fn name(asset: AssetId) -> Option<String> {
         if asset == AssetId::default() {
-            Some(String::from_ascii_str(from_str_array(NAME)))
+            let a = storage.name.try_read().unwrap().read_slice();
+            return Some(storage.name.try_read().unwrap().read_slice());
         } else {
-            None
+            return None;
         }
     }
 
