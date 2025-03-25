@@ -14,7 +14,8 @@
     "axios": "^1.7.9",
     "express": "^4.21.2",
     "fuels": "^0.98.0",
-    "prettier": "^3.4.2"
+    "prettier": "^3.4.2",
+    "zod": "^3.24.2"
   },
   "scripts": {
     "sway-fmt": "cd orderbook_predicate && forc fmt && cd ..",
@@ -24,6 +25,7 @@
     "fund-address": "bun scripts/fund_address.ts",
     "exchange": "bun scripts/exchange.ts",
     "mint_assets": "bun scripts/mint_assets.ts",
+    "balances": "bun scripts/balances.ts",
     "dev": "bun --hot run src/app.ts"
   }
 }

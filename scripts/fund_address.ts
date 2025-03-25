@@ -21,9 +21,9 @@ const main = async () => {
   const provider = new Provider(FUEL_PROVIDER_URL);
   const wallet = Wallet.fromPrivateKey(PRIVATE_KEY, provider);
 
-  // Transfer 0.00001 Eth
+  // Transfer 1 Eth
   const { status } = await (
-    await wallet.transfer(address, bn(100000))
+    await wallet.transfer(address, bn(100000000))
   ).waitForResult();
 
   if (status !== 'success') {
