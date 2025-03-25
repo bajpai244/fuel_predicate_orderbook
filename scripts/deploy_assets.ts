@@ -1,6 +1,13 @@
 import { writeFileSync } from 'node:fs';
 
-import { Provider, Wallet } from 'fuels';
+import {
+  BN,
+  createAssetId,
+  MultiCallInvocationScope,
+  Provider,
+  Wallet,
+  ZeroBytes32,
+} from 'fuels';
 import { DummyStablecoinFactory } from '../out';
 
 // The script deploys the following assets:
@@ -24,14 +31,43 @@ const main = async () => {
 
   const factory = new DummyStablecoinFactory(wallet);
 
-  const usdcAddress = (await (await factory.deploy()).waitForResult()).contract
-    .id.b256Address;
-  const ethAddress = (await (await factory.deploy()).waitForResult()).contract
-    .id.b256Address;
-  const btcAddress = (await (await factory.deploy()).waitForResult()).contract
-    .id.b256Address;
-  const fuelAddress = (await (await factory.deploy()).waitForResult()).contract
-    .id.b256Address;
+  const usdc = await (await factory.deploy()).waitForResult();
+  const eth = await (await factory.deploy()).waitForResult();
+  const btc = await (await factory.deploy()).waitForResult();
+  const fuel = await (await factory.deploy()).waitForResult();
+
+  const usdcAddress = usdc.contract.id.b256Address;
+  const ethAddress = eth.contract.id.b256Address;
+  const btcAddress = btc.contract.id.b256Address;
+  const fuelAddress = fuel.contract.id.b256Address;
+
+  const usdcAssetId = createAssetId(usdcAddress, ZeroBytes32);
+  await (
+    await usdc.contract.functions
+      .set_src20_data(usdcAssetId, new BN('0'), 'USDC', 'USDC', 9)
+      .call()
+  ).waitForResult();
+
+  const ethAssetId = createAssetId(ethAddress, ZeroBytes32);
+  await (
+    await eth.contract.functions
+      .set_src20_data(ethAssetId, new BN('0'), 'ETH', 'ETH', 9)
+      .call()
+  ).waitForResult();
+
+  const btcAssetId = createAssetId(btcAddress, ZeroBytes32);
+  await (
+    await btc.contract.functions
+      .set_src20_data(btcAssetId, new BN('0'), 'BTC', 'BTC', 9)
+      .call()
+  ).waitForResult();
+
+  const fuelAssetId = createAssetId(fuelAddress, ZeroBytes32);
+  await (
+    await fuel.contract.functions
+      .set_src20_data(fuelAssetId, new BN('0'), 'FUEL', 'FUEL', 9)
+      .call()
+  ).waitForResult();
 
   console.log('USDC: ', usdcAddress);
   console.log('ETH: ', ethAddress);
