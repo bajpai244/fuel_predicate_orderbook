@@ -26,6 +26,7 @@
     "exchange": "bun scripts/exchange.ts",
     "mint_assets": "bun scripts/mint_assets.ts",
     "balances": "bun scripts/balances.ts",
-    "dev": "bun --hot run src/app.ts"
+    "dev": "bun --hot run src/app.ts",
+    "start": "bun run src/app.ts"
   }
 }
