@@ -220,6 +220,12 @@ app.post('/mint', async (req, res) => {
   });
 });
 
+app.get('/health', (req, res) => {
+  res.status(200).json({
+    status: 'healthy',
+  });
+});
+
 // Start server
 app.listen(port, () => {
   console.log(`Server listening on port ${port}`);
