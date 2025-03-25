@@ -1,8 +1,4 @@
 [[package]]
-name = "core"
-source = "path+from-root-2E654A91A5A21ADE"
-
-[[package]]
 name = "dummy_stablecoin"
 source = "member"
 dependencies = [
@@ -12,10 +8,9 @@ dependencies = [
 
 [[package]]
 name = "standards"
-source = "git+https://github.com/FuelLabs/sway-standards?branch=master#60a406e230de03986cbc354077b73e5c06a69b97"
+source = "git+https://github.com/FuelLabs/sway-standards?branch=master#90951da15fa97fc40e3b6ad6967f369e81df6095"
 dependencies = ["std"]
 
 [[package]]
 name = "std"
-source = "git+https://github.com/fuellabs/sway?tag=v0.66.6#986aee2c1e34c9cd958c81e7fd6b84638b26619b"
-dependencies = ["core"]
+source = "git+https://github.com/fuellabs/sway?tag=v0.67.0#d821dcb0c7edb1d6e2a772f5a1ccefe38902eaec"

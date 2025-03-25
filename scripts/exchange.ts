@@ -1,8 +1,7 @@
-import { createAssetId, Provider, Wallet, ZeroBytes32 } from 'fuels';
-import { DummyApiClient } from '../src/lib';
+import { BN, createAssetId, Provider, ScriptRequest, ScriptTransactionRequest, Wallet, ZeroBytes32 } from 'fuels';
 import axios from 'axios';
 import assets from '../assets.json';
-import { OrderbookPredicate } from '../out';
+import { setRequestFields } from '../src/schema';
 
 // it sells 1 ETH for market price
 const main = async () => {
@@ -26,74 +25,45 @@ const main = async () => {
 
   const userWallet = Wallet.fromPrivateKey(USER_PRIVATE_KEY, provider);
 
-  const apiClient = new DummyApiClient();
-
   const sellTokenName = 'eth';
   const buyTokenName = 'usdc';
 
   const sellTokenAssetId = createAssetId(assets[sellTokenName], ZeroBytes32);
   const buyTokenAssetId = createAssetId(assets[buyTokenName], ZeroBytes32);
 
-  const sellTokenPrice = await apiClient.getTokenPrice(sellTokenName);
-  const buyTokenPrice = await apiClient.getTokenPrice(buyTokenName);
+  const scriptTransactionRequest = new ScriptTransactionRequest();
 
-  const sellTokenAmount = 1;
-  const buyTokenAmount = sellTokenPrice * sellTokenAmount;
+  const {data: ethPrice} = await axios.get(`http://localhost:3000/price/${sellTokenName}`);
 
-  console.log('sell token price', sellTokenPrice);
-  console.log('buy token price', buyTokenPrice);
+  // // 1 eth
+  const sellTokenAmount = new BN(10**9);
+  const resources = await userWallet.getResourcesToSpend([{
+    assetId: sellTokenAssetId.bits,
+    amount: sellTokenAmount,
+  }]);
 
-  console.log('sell token amount', sellTokenAmount);
-  console.log('buy token amount', buyTokenAmount);
+  scriptTransactionRequest.addResources(resources);
 
-  const orderBookPredicate = new OrderbookPredicate({
-    configurableConstants: {
-      ASSET_ID_GET: buyTokenAssetId.bits,
-      ASSET_ID_SEND: sellTokenAssetId.bits,
-      MINIMAL_OUTPUT_AMOUNT: buyTokenAmount,
-      RECEPIENT: userWallet.address.toB256(),
-    },
-    provider,
-  });
+  const baseResources = await userWallet.getResourcesToSpend([{
+    assetId: await provider.getBaseAssetId(),
+    amount: new BN(100000000),
+  }]);
 
-  const predicateAddress = orderBookPredicate.address;
-  console.log('predicate address', predicateAddress.toB256());
+  scriptTransactionRequest.addResources(baseResources);
 
-  console.log('locking funds in predicate');
-
-  console.log(
-    'predicate balances before:',
-    await orderBookPredicate.getBalances()
-  );
-
-  const { status } = await (
-    await userWallet.transfer(
-      predicateAddress,
-      sellTokenAmount,
-      sellTokenAssetId.bits
-    )
-  ).waitForResult();
-
-  console.log(
-    'predicate balances after:',
-    await orderBookPredicate.getBalances()
-  );
-
-  if (status !== 'success') {
-    throw new Error('failed to lock funds in predicate');
-  }
-
-  axios.post('http://localhost:3000/fill-order', {
+  const {data} = await axios.post('http://localhost:3000/fill-order', {
+    scriptRequest: scriptTransactionRequest.toJSON(),
     sellTokenName,
-    buyTokenName,
-    sellTokenAmount,
-    buyTokenAmount,
-    predicateAddress: predicateAddress.toB256(),
-    sellTokenAssetId: sellTokenAssetId.bits,
-    buyTokenAssetId: buyTokenAssetId.bits,
-    minimalOutputAmount: buyTokenAmount,
-    recepient: userWallet.address.toB256(),
+    sellTokenAmount: sellTokenAmount.toString(),
   });
+
+  const responseRequest = new ScriptTransactionRequest();
+  setRequestFields(responseRequest, data.request);
+
+  // console.log(responseRequest.inputs);
+
+  const tx = await (await userWallet.sendTransaction(responseRequest)).waitForResult();
+  console.log(tx.id);
 };
 
 main();

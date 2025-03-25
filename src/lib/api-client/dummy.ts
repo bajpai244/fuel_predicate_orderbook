@@ -1,3 +1,4 @@
+import { BN } from 'fuels';
 import type { ApiClient } from './';
 
 // Dummy implementation that returns mock prices
@@ -9,10 +10,10 @@ export class DummyApiClient implements ApiClient {
     USDC: 1,
   };
 
-  async getTokenPrice(tokenName: string): Promise<number> {
+  async getTokenPrice(tokenName: string): Promise<BN> {
     const normalizedToken = tokenName.toUpperCase();
     if (normalizedToken in this.mockPrices) {
-      return this.mockPrices[normalizedToken];
+      return new BN(this.mockPrices[normalizedToken]);
     }
     throw new Error(`Price not found for token: ${tokenName}`);
   }

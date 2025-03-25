@@ -1,0 +1,6 @@
+# exchange.ts
+
+sell token price <BN: 0x1e682927f4c>
+buy token price <BN: 0x3b99919e>
+sell token amount 1
+buy token amount <BN: 0x1e682927f4c>

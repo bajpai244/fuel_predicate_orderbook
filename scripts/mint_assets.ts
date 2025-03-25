@@ -23,7 +23,7 @@ const main = async () => {
   const wallet = Wallet.fromPrivateKey(PRIVATE_KEY, provider);
 
   const userAddress = Wallet.fromPrivateKey(USER_PRIVATE_KEY, provider).address;
-  const mintAmount = bn(1000);
+  const mintAmount = bn(10).pow(9).mul(5000);
 
   for (const [tokenName, contractId] of Object.entries(assets)) {
     console.log(`Minting ${tokenName}...`);
@@ -58,7 +58,7 @@ const main = async () => {
         },
       },
       ZeroBytes32,
-      mintAmount.mul(10)
+      mintAmount
     );
 
     const multiCall = stableCoin.multiCall([userCall, solverCall]);
