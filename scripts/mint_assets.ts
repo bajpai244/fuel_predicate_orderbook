@@ -58,7 +58,7 @@ const main = async () => {
         },
       },
       ZeroBytes32,
-      mintAmount
+      mintAmount.mul(200)
     );
 
     const multiCall = stableCoin.multiCall([userCall, solverCall]);
