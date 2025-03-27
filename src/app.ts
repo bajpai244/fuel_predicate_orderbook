@@ -135,12 +135,12 @@ app.post('/fill-order', async (req, res) => {
   request.maxFee = new BN(0);
   request.gasLimit = new BN(0);
 
-  const { gasPrice, gasLimit, maxGas } = await provider.estimateTxGasAndFee({
+  const { gasLimit, maxFee } = await provider.estimateTxGasAndFee({
     transactionRequest: request,
   });
 
   request.gasLimit = gasLimit;
-  request.maxFee = maxGas;
+  request.maxFee = maxFee;
 
   const signedRequest = await wallet.signTransaction(request);
 
