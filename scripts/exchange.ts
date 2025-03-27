@@ -64,8 +64,15 @@ const main = async () => {
   ]);
 
   scriptTransactionRequest.addResources(baseResources);
-  scriptTransactionRequest.addCoinOutput(solverWallet.address, sellTokenAmount, sellTokenAssetId.bits);
-  scriptTransactionRequest.addChangeOutput(userWallet.address, sellTokenAssetId.bits);
+  scriptTransactionRequest.addCoinOutput(
+    solverWallet.address,
+    sellTokenAmount,
+    sellTokenAssetId.bits
+  );
+  scriptTransactionRequest.addChangeOutput(
+    userWallet.address,
+    sellTokenAssetId.bits
+  );
 
   const { data } = await axios.post('http://localhost:3000/fill-order', {
     scriptRequest: scriptTransactionRequest.toJSON(),
