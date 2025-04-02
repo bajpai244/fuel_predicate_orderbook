@@ -210,6 +210,59 @@ app.get('/price/:tokenName', async (req, res) => {
 
 app.post('/mint', async (req, res) => {
   try {
+    const { tokenName, address, amount } = req.body as {
+      tokenName: string;
+      address: string;
+      amount: number;
+    };
+
+    const tokenExists = await apiClient.tokenExists(tokenName.toLowerCase());
+    if (!tokenExists) {
+      return res.status(400).json({
+        error: 'Token not found',
+      });
+    }
+
+    // @ts-ignore: the above check ensures that the tokenName is valid
+    const contractId = assets[tokenName.toLowerCase()];
+    const assetId = createAssetId(contractId, ZeroBytes32);
+
+    const coin = new DummyStablecoin(contractId, wallet);
+
+    const { transactionResult } = await (
+      await coin.functions
+        .mint(
+          {
+            Address: {
+              bits: address,
+            },
+          },
+          ZeroBytes32,
+          amount
+        )
+        .call()
+    ).waitForResult();
+
+    if (transactionResult.status !== 'success') {
+      return res.status(400).json({
+        error: 'Failed to mint token',
+      });
+    }
+
+    res.status(200).json({
+      status: 'success',
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      status: 'error',
+      message: 'Failed to mint token',
+    });
+  }
+});
+
+app.post('/mint-all', async (req, res) => {
+  try {
     const { address } = req.body as {
       address: string;
     };

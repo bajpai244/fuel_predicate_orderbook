@@ -22,7 +22,7 @@ const main = async () => {
   }
 
   // make a call to the /mint endpoint
-  const response = await axios.post(`http://localhost:3000/mint`, {
+  const response = await axios.post(`http://localhost:3000/mint-all`, {
     address,
   });
 
