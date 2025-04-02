@@ -1,6 +1,16 @@
-import { DummyStablecoin } from '../out';
+import { DummyStablecoin, MultiMintScript } from '../out';
 import assets from '../assets.json';
-import { bn, createAssetId, Provider, Wallet, ZeroBytes32 } from 'fuels';
+import {
+  Address,
+  BN,
+  bn,
+  createAssetId,
+  Provider,
+  ScriptRequest,
+  ScriptTransactionRequest,
+  Wallet,
+  ZeroBytes32,
+} from 'fuels';
 
 // mints assets with 1:10 ratio, for every 1 token minted for user, 10 tokens are minted for the solver
 const main = async () => {
@@ -21,9 +31,46 @@ const main = async () => {
 
   const provider = new Provider(FUEL_PROVIDER_URL);
   const wallet = Wallet.fromPrivateKey(PRIVATE_KEY, provider);
-
   const userAddress = Wallet.fromPrivateKey(USER_PRIVATE_KEY, provider).address;
   const mintAmount = bn(10).pow(9).mul(5000);
+
+  // const usdcAssetId = createAssetId(assets.usdc, ZeroBytes32);
+  // const fuelAssetId = createAssetId(assets.fuel, ZeroBytes32);
+  // const ethAssetId = createAssetId(assets.eth, ZeroBytes32);
+  // const btcAssetId = createAssetId(assets.btc, ZeroBytes32);
+
+  // const multiMintScript = new MultiMintScript(wallet);
+
+  // const scriptRequest = await multiMintScript.functions.main({
+  //   usdc_contract_address: assets.usdc,
+  //   fuel_contract_address: assets.fuel,
+  //   eth_contract_address: assets.eth,
+  //   btc_contract_address: assets.btc,
+  //   recipient: userAddress.toB256(),
+  // }).getTransactionRequest();
+
+  // scriptRequest.addContractInputAndOutput(Address.fromAddressOrString(assets.usdc));
+  // scriptRequest.addContractInputAndOutput(Address.fromAddressOrString(assets.fuel));
+  // scriptRequest.addContractInputAndOutput(Address.fromAddressOrString(assets.eth));
+  // scriptRequest.addContractInputAndOutput(Address.fromAddressOrString(assets.btc));
+
+  // scriptRequest.addVariableOutputs(userAddress, usdcAssetId.bits);
+  // scriptRequest.addVariableOutputs(userAddress, fuelAssetId.bits);
+  // scriptRequest.addVariableOutputs(userAddress, ethAssetId.bits);
+  // scriptRequest.addVariableOutputs(userAddress, btcAssetId.bits);
+
+  // scriptRequest.maxFee = new BN(10000000);
+  // scriptRequest.gasLimit = new BN(100000)
+
+  // await provider.estimateTxDependencies(scriptRequest);
+  // await scriptRequest.estimateAndFund(wallet);
+
+  // const transactionResult = await (await wallet.sendTransaction(scriptRequest)).waitForResult();
+
+  // console.log('transactionResult', transactionResult.id);
+  // console.log('transactionResult', (transactionResult).status);
+
+  // ------------------------------------------------------------
 
   for (const [tokenName, contractId] of Object.entries(assets)) {
     console.log(`Minting ${tokenName}...`);
@@ -64,6 +111,7 @@ const main = async () => {
     const multiCall = stableCoin.multiCall([userCall, solverCall]);
 
     const callResult = await (await multiCall.call()).waitForResult();
+    console.log('transactionId', callResult.transactionResponse.id);
     console.log(
       'mint status:',
       (await callResult.transactionResponse.waitForResult()).status

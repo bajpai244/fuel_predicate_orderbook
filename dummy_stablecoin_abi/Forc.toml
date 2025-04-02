@@ -1,0 +1,7 @@
+[project]
+authors = ["Harsh Bajpai"]
+entry = "lib.sw"
+license = "Apache-2.0"
+name = "dummy_stablecoin_abi"
+
+[dependencies]

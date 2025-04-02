@@ -1,0 +1,16 @@
+[[package]]
+name = "dummy_stablecoin_abi"
+source = "path+from-root-2D28EFDB0D501B8A"
+dependencies = ["std"]
+
+[[package]]
+name = "multi-mint-script"
+source = "member"
+dependencies = [
+    "dummy_stablecoin_abi",
+    "std",
+]
+
+[[package]]
+name = "std"
+source = "git+https://github.com/fuellabs/sway?tag=v0.67.0#d821dcb0c7edb1d6e2a772f5a1ccefe38902eaec"

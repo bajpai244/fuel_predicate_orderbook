@@ -4,15 +4,17 @@ import {
   BN,
   createAssetId,
   InputType,
+  MultiCallInvocationScope,
   Provider,
   ScriptTransactionRequest,
   Wallet,
   ZeroBytes32,
 } from 'fuels';
-import { DummyStablecoin } from '../out';
+import { DummyStablecoin, MultiMintScript } from '../out';
 import { PythApiClient } from './lib';
 import assets from '../assets.json';
 import { ScriptRequestSchema, setRequestFields } from './schema';
+import { DummyStablecoinInterface } from '../out/contracts/DummyStablecoin';
 
 if (!process.env.FUEL_PROVIDER_URL) {
   throw new Error('FUEL_PROVIDER_URL is not set');
@@ -208,47 +210,70 @@ app.get('/price/:tokenName', async (req, res) => {
 
 app.post('/mint', async (req, res) => {
   try {
-    const { tokenName, address, amount } = req.body as {
-      tokenName: string;
+    const { address } = req.body as {
       address: string;
-      amount: number;
     };
 
-    const tokenExists = await apiClient.tokenExists(tokenName.toLowerCase());
-    if (!tokenExists) {
-      return res.status(400).json({
-        error: 'Token not found',
-      });
-    }
+    const usdcContract = new DummyStablecoin(assets.usdc, wallet);
+    const fuelContract = new DummyStablecoin(assets.fuel, wallet);
+    const ethContract = new DummyStablecoin(assets.eth, wallet);
+    const btcContract = new DummyStablecoin(assets.btc, wallet);
 
-    // @ts-ignore: the above check ensures that the tokenName is valid
-    const contractId = assets[tokenName.toLowerCase()];
-    const assetId = createAssetId(contractId, ZeroBytes32);
+    const usdcCall = usdcContract.functions.mint(
+      {
+        Address: {
+          bits: address,
+        },
+      },
+      ZeroBytes32,
+      // 1000 usdc
+      new BN(10).pow(9).mul(1000)
+    );
 
-    const coin = new DummyStablecoin(contractId, wallet);
+    const fuelCall = fuelContract.functions.mint(
+      {
+        Address: {
+          bits: address,
+        },
+      },
+      ZeroBytes32,
+      // 10000 fuel
+      new BN(10).pow(9).mul(10000)
+    );
 
-    const { transactionResult } = await (
-      await coin.functions
-        .mint(
-          {
-            Address: {
-              bits: address,
-            },
-          },
-          ZeroBytes32,
-          amount
-        )
-        .call()
-    ).waitForResult();
+    const ethCall = ethContract.functions.mint(
+      {
+        Address: {
+          bits: address,
+        },
+      },
+      ZeroBytes32,
+      // 0.1 eth
+      new BN(10).pow(8)
+    );
 
-    if (transactionResult.status !== 'success') {
-      return res.status(400).json({
-        error: 'Failed to mint token',
-      });
-    }
+    const btcCall = btcContract.functions.mint(
+      {
+        Address: {
+          bits: address,
+        },
+      },
+      ZeroBytes32,
+      // 0.1 btc
+      new BN(10).pow(8)
+    );
+
+    const multiCall = fuelContract.multiCall([
+      usdcCall,
+      fuelCall,
+      ethCall,
+      btcCall,
+    ]);
+    const callResult = await (await multiCall.call()).waitForResult();
 
     res.status(200).json({
       status: 'success',
+      transactionId: callResult.transactionId,
     });
   } catch (error) {
     console.error(error);
