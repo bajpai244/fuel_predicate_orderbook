@@ -4,7 +4,6 @@ import {
   BN,
   createAssetId,
   InputType,
-  MultiCallInvocationScope,
   Provider,
   ScriptTransactionRequest,
   Wallet,
