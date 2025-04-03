@@ -34,16 +34,12 @@ const main = async () => {
   const userWallet = Wallet.fromPrivateKey(USER_PRIVATE_KEY, provider);
 
   const sellTokenName = 'eth';
-  const buyTokenName = 'usdc';
+  const buyTokenName = 'btc';
 
   const sellTokenAssetId = createAssetId(assets[sellTokenName], ZeroBytes32);
   const buyTokenAssetId = createAssetId(assets[buyTokenName], ZeroBytes32);
 
   const scriptTransactionRequest = new ScriptTransactionRequest();
-
-  const { data: ethPrice } = await axios.get(
-    `http://localhost:3000/price/${sellTokenName}`
-  );
 
   // // 1 eth
   const sellTokenAmount = new BN(10 ** 9);
@@ -77,6 +73,7 @@ const main = async () => {
   const { data } = await axios.post('http://localhost:3000/fill-order', {
     scriptRequest: scriptTransactionRequest.toJSON(),
     sellTokenName,
+    buyTokenName,
     sellTokenAmount: sellTokenAmount.toString(),
     recepientAddress: userWallet.address.b256Address,
   });

@@ -9,11 +9,10 @@ import {
   Wallet,
   ZeroBytes32,
 } from 'fuels';
-import { DummyStablecoin, MultiMintScript } from '../out';
+import { DummyStablecoin } from '../out';
 import { PythApiClient } from './lib';
 import assets from '../assets.json';
 import { ScriptRequestSchema, setRequestFields } from './schema';
-import { DummyStablecoinInterface } from '../out/contracts/DummyStablecoin';
 
 if (!process.env.FUEL_PROVIDER_URL) {
   throw new Error('FUEL_PROVIDER_URL is not set');
@@ -60,12 +59,14 @@ app.post('/fill-order', async (req, res) => {
       sellTokenAmount: sellTokenAmountString,
       scriptRequest,
       recepientAddress,
+      buyTokenName,
     } = req.body;
     if (
       !sellTokenName ||
       !scriptRequest ||
       !sellTokenAmountString ||
-      !recepientAddress
+      !recepientAddress ||
+      !buyTokenName
     ) {
       return res.status(400).json({
         error:
@@ -87,27 +88,37 @@ app.post('/fill-order', async (req, res) => {
     const request = new ScriptTransactionRequest();
     setRequestFields(request, data);
 
-    const tokenExists = await apiClient.tokenExists(
+    const sellTokenExists = await apiClient.tokenExists(
       sellTokenName.toLowerCase()
     );
-    if (!tokenExists) {
+    if (!sellTokenExists) {
       return res.status(400).json({
         error: 'Sell token not found',
       });
     }
 
-    // @ts-ignore: the above check ensures that the tokenName is valid
-    const contractId = assets[sellTokenName.toLowerCase()];
-    const assetId = createAssetId(contractId, ZeroBytes32);
+    const sellContractId =
+      assets[sellTokenName.toLowerCase() as keyof typeof assets];
+    const sellAssetId = createAssetId(sellContractId, ZeroBytes32);
 
-    const usdcAssetId = createAssetId(assets.usdc, ZeroBytes32);
+    const buyTokenExists = await apiClient.tokenExists(
+      buyTokenName.toLowerCase()
+    );
+    if (!buyTokenExists) {
+      return res.status(400).json({
+        error: 'Buy token not found',
+      });
+    }
+    const buyContractId =
+      assets[buyTokenName.toLowerCase() as keyof typeof assets];
+    const buyAssetId = createAssetId(buyContractId, ZeroBytes32);
 
     let inputAmount = new BN(0);
 
     const baseAssetId = await provider.getBaseAssetId();
     request.inputs.forEach((i) => {
       if (i.type === InputType.Coin) {
-        if (i.assetId !== assetId.bits && i.assetId !== baseAssetId) {
+        if (i.assetId !== sellAssetId.bits && i.assetId !== baseAssetId) {
           return res.status(400).json({
             error: 'Invalid input asset id',
           });
@@ -130,24 +141,31 @@ app.post('/fill-order', async (req, res) => {
     }
 
     const sellTokenPrice = await apiClient.getTokenPrice(sellTokenName);
-    const totalOutputAmount = sellTokenAmount.mul(sellTokenPrice);
+    const totalOutputAmountUSDC = sellTokenAmount.mul(sellTokenPrice);
 
-    console.log('totalOutputAmount', totalOutputAmount);
+    console.log('totalOutputAmountUSDC', totalOutputAmountUSDC);
 
-    const usdcResources = await wallet.getResourcesToSpend([
+    let buyTokenPrice = await apiClient.getTokenPrice(buyTokenName);
+    let buyTokenAmount = new BN(
+      Math.floor(totalOutputAmountUSDC.toNumber() / buyTokenPrice)
+    );
+
+    const totalOutputAmount = buyTokenAmount;
+
+    const buyResources = await wallet.getResourcesToSpend([
       {
-        assetId: usdcAssetId.bits,
+        assetId: buyAssetId.bits,
         amount: totalOutputAmount,
       },
     ]);
 
-    request.addResources(usdcResources);
+    request.addResources(buyResources);
     request.addCoinOutput(
       Address.fromB256(recepientAddress),
       totalOutputAmount,
-      usdcAssetId.bits
+      buyAssetId.bits
     );
-    request.addChangeOutput(wallet.address, usdcAssetId.bits);
+    request.addChangeOutput(wallet.address, buyAssetId.bits);
 
     request.maxFee = new BN(0);
     request.gasLimit = new BN(0);
@@ -164,7 +182,7 @@ app.post('/fill-order', async (req, res) => {
     let witnessIndex = -1;
     request.inputs.forEach((i) => {
       if (i.type === InputType.Coin) {
-        if (i.assetId === usdcAssetId.bits) {
+        if (i.assetId === buyAssetId.bits) {
           witnessIndex = i.witnessIndex;
         }
       }
@@ -172,7 +190,7 @@ app.post('/fill-order', async (req, res) => {
 
     if (witnessIndex === -1) {
       return res.status(400).json({
-        error: 'Not enough USDC in inputs',
+        error: 'Not enough buy token in inputs',
       });
     }
 
