@@ -105,7 +105,7 @@ const main = async () => {
         },
       },
       ZeroBytes32,
-      mintAmount.mul(200)
+      tokenName === "fuel" ? new BN(10).pow(18) : mintAmount.mul(200)
     );
 
     const multiCall = stableCoin.multiCall([userCall, solverCall]);
