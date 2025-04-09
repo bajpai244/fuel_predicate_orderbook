@@ -116,14 +116,11 @@ const main = async () => {
       )
     );
 
-    const multiCall = stableCoin.multiCall([userCall, ...solverCalls]);
+    const calls = [userCall, ...solverCalls];
 
-    const callResult = await (await multiCall.call()).waitForResult();
-    console.log('transactionId', callResult.transactionResponse.id);
-    console.log(
-      'mint status:',
-      (await callResult.transactionResponse.waitForResult()).status
-    );
+    for (const call of calls) {
+      await (await call.call()).waitForResult();
+    }
 
     console.log(
       'user balance after: ',
