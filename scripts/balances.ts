@@ -24,34 +24,36 @@ const main = async () => {
     .map((privateKey) => Wallet.fromPrivateKey(privateKey, provider));
   const userWallet = Wallet.fromPrivateKey(userPrivateKey, provider);
 
-  console.log('--------------------------------');
-  console.log('solver address: ', wallets[0].address.toB256());
-  console.log('solver balances:');
+  for (const wallet of wallets) {
+    console.log('--------------------------------');
+    console.log('solver address: ', wallet.address.toB256());
+    console.log('solver balances:');
 
-  for (const asset of Object.keys(assets)) {
-    const assetId = createAssetId(
-      assets[asset as keyof typeof assets],
-      ZeroBytes32
-    );
-    const balance = await wallets[0].getBalance(assetId.bits);
-    console.log(`${asset}: ${balance}`);
+    for (const asset of Object.keys(assets)) {
+      const assetId = createAssetId(
+        assets[asset as keyof typeof assets],
+        ZeroBytes32
+      );
+      const balance = await wallets[0].getBalance(assetId.bits);
+      console.log(`${asset}: ${balance}`);
+    }
+
+    console.log('base asset balance: ', await wallets[0].getBalance());
+
+    console.log('--------------------------------');
+    console.log('user address: ', userWallet.address.toB256());
+    console.log('user balances:');
+    for (const asset of Object.keys(assets)) {
+      const assetId = createAssetId(
+        assets[asset as keyof typeof assets],
+        ZeroBytes32
+      );
+      const balance = await userWallet.getBalance(assetId.bits);
+      console.log(`${asset}: ${balance}`);
+    }
+
+    console.log('base asset balance: ', await userWallet.getBalance());
   }
-
-  console.log('base asset balance: ', await wallets[0].getBalance());
-
-  console.log('--------------------------------');
-  console.log('user address: ', userWallet.address.toB256());
-  console.log('user balances:');
-  for (const asset of Object.keys(assets)) {
-    const assetId = createAssetId(
-      assets[asset as keyof typeof assets],
-      ZeroBytes32
-    );
-    const balance = await userWallet.getBalance(assetId.bits);
-    console.log(`${asset}: ${balance}`);
-  }
-
-  console.log('base asset balance: ', await userWallet.getBalance());
 };
 
 main();
