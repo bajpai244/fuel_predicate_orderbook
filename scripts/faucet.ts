@@ -2,19 +2,6 @@ import { bn, Provider, Wallet } from 'fuels';
 import axios from 'axios';
 
 const main = async () => {
-  const FUEL_PROVIDER_URL = process.env.FUEL_PROVIDER_URL;
-  if (!FUEL_PROVIDER_URL) {
-    throw new Error('FUEL_PROVIDER_URL is not set');
-  }
-
-  const PRIVATE_KEY = process.env.PRIVATE_KEY;
-  if (!PRIVATE_KEY) {
-    throw new Error('PRIVATE_KEY is not set');
-  }
-
-  const provider = new Provider(FUEL_PROVIDER_URL);
-  const wallet = Wallet.fromPrivateKey(PRIVATE_KEY, provider);
-
   // take address from command line argument
   const address = process.argv[2];
   if (!address) {

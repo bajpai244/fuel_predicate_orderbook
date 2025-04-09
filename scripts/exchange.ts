@@ -18,9 +18,9 @@ const main = async () => {
     throw new Error('FUEL_PROVIDER_URL is not set');
   }
 
-  const PRIVATE_KEY = process.env.PRIVATE_KEY;
-  if (!PRIVATE_KEY) {
-    throw new Error('PRIVATE_KEY is not set');
+  const PRIVATE_KEYS = process.env.PRIVATE_KEYS;
+  if (!PRIVATE_KEYS) {
+    throw new Error('PRIVATE_KEYS is not set');
   }
 
   const USER_PRIVATE_KEY = process.env.USER_PRIVATE_KEY;
@@ -29,7 +29,9 @@ const main = async () => {
   }
 
   const provider = new Provider(FUEL_PROVIDER_URL);
-  const solverWallet = Wallet.fromPrivateKey(PRIVATE_KEY, provider);
+  const solverWallets = PRIVATE_KEYS.split(',').map((privateKey) =>
+    Wallet.fromPrivateKey(privateKey, provider)
+  );
 
   const userWallet = Wallet.fromPrivateKey(USER_PRIVATE_KEY, provider);
 
@@ -61,7 +63,7 @@ const main = async () => {
 
   scriptTransactionRequest.addResources(baseResources);
   scriptTransactionRequest.addCoinOutput(
-    solverWallet.address,
+    solverWallets[0].address,
     sellTokenAmount,
     sellTokenAssetId.bits
   );

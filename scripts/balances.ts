@@ -9,8 +9,8 @@ const main = async () => {
 
   const provider = new Provider(FUEL_PROVIDER_URL);
 
-  const privateKey = process.env.PRIVATE_KEY;
-  if (!privateKey) {
+  const privateKeys = process.env.PRIVATE_KEYS;
+  if (!privateKeys) {
     throw new Error('PRIVATE_KEY is not set');
   }
 
@@ -19,11 +19,13 @@ const main = async () => {
     throw new Error('USER_PRIVATE_KEY is not set');
   }
 
-  const wallet = Wallet.fromPrivateKey(privateKey, provider);
+  const wallets = privateKeys
+    .split(',')
+    .map((privateKey) => Wallet.fromPrivateKey(privateKey, provider));
   const userWallet = Wallet.fromPrivateKey(userPrivateKey, provider);
 
   console.log('--------------------------------');
-  console.log('solver address: ', wallet.address.toB256());
+  console.log('solver address: ', wallets[0].address.toB256());
   console.log('solver balances:');
 
   for (const asset of Object.keys(assets)) {
@@ -31,11 +33,11 @@ const main = async () => {
       assets[asset as keyof typeof assets],
       ZeroBytes32
     );
-    const balance = await wallet.getBalance(assetId.bits);
+    const balance = await wallets[0].getBalance(assetId.bits);
     console.log(`${asset}: ${balance}`);
   }
 
-  console.log('base asset balance: ', await wallet.getBalance());
+  console.log('base asset balance: ', await wallets[0].getBalance());
 
   console.log('--------------------------------');
   console.log('user address: ', userWallet.address.toB256());

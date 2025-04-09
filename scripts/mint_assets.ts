@@ -19,9 +19,9 @@ const main = async () => {
     throw new Error('FUEL_PROVIDER_URL is not set');
   }
 
-  const PRIVATE_KEY = process.env.PRIVATE_KEY;
-  if (!PRIVATE_KEY) {
-    throw new Error('PRIVATE_KEY is not set');
+  const PRIVATE_KEYS = process.env.PRIVATE_KEYS;
+  if (!PRIVATE_KEYS) {
+    throw new Error('PRIVATE_KEYS is not set');
   }
 
   const USER_PRIVATE_KEY = process.env.USER_PRIVATE_KEY;
@@ -30,7 +30,10 @@ const main = async () => {
   }
 
   const provider = new Provider(FUEL_PROVIDER_URL);
-  const wallet = Wallet.fromPrivateKey(PRIVATE_KEY, provider);
+  const privateKeys = PRIVATE_KEYS.split(',');
+  const wallets = privateKeys.map((privateKey) =>
+    Wallet.fromPrivateKey(privateKey, provider)
+  );
   const userAddress = Wallet.fromPrivateKey(USER_PRIVATE_KEY, provider).address;
   const mintAmount = bn(10).pow(9).mul(5000);
 
@@ -81,12 +84,15 @@ const main = async () => {
       'user balance before: ',
       await provider.getBalance(userAddress, assetId.bits)
     );
-    console.log(
-      'solver balance before: ',
-      await provider.getBalance(wallet.address, assetId.bits)
-    );
 
-    const stableCoin = new DummyStablecoin(contractId, wallet);
+    for (const wallet of wallets) {
+      console.log(
+        `solver balance before (${wallet.address.toB256()}): `,
+        await provider.getBalance(wallet.address, assetId.bits)
+      );
+    }
+
+    const stableCoin = new DummyStablecoin(contractId, wallets[0]);
 
     const userCall = stableCoin.functions.mint(
       {
@@ -98,17 +104,19 @@ const main = async () => {
       mintAmount
     );
 
-    const solverCall = stableCoin.functions.mint(
-      {
-        Address: {
-          bits: wallet.address.toB256(),
+    const solverCalls = wallets.map((wallet) =>
+      stableCoin.functions.mint(
+        {
+          Address: {
+            bits: wallet.address.toB256(),
+          },
         },
-      },
-      ZeroBytes32,
-      tokenName === "fuel" ? new BN(10).pow(18) : mintAmount.mul(200)
+        ZeroBytes32,
+        tokenName === 'fuel' ? new BN(10).pow(18) : mintAmount.mul(200)
+      )
     );
 
-    const multiCall = stableCoin.multiCall([userCall, solverCall]);
+    const multiCall = stableCoin.multiCall([userCall, ...solverCalls]);
 
     const callResult = await (await multiCall.call()).waitForResult();
     console.log('transactionId', callResult.transactionResponse.id);
@@ -121,10 +129,13 @@ const main = async () => {
       'user balance after: ',
       await provider.getBalance(userAddress, assetId.bits)
     );
-    console.log(
-      'solver balance after: ',
-      await provider.getBalance(wallet.address, assetId.bits)
-    );
+
+    for (const wallet of wallets) {
+      console.log(
+        `solver balance after (${wallet.address.toB256()}): `,
+        await provider.getBalance(wallet.address, assetId.bits)
+      );
+    }
   }
 };
 

@@ -62,7 +62,7 @@ export const ScriptRequestSchema = z.object({
 
 export const setRequestFields = (
   request: ScriptTransactionRequest,
-  scriptRequest: ScriptRequest
+  scriptRequest: z.infer<typeof ScriptRequestSchema>
 ) => {
   if (scriptRequest.type) {
     request.type = scriptRequest.type;

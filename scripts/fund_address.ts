@@ -13,17 +13,19 @@ const main = async () => {
     throw new Error('FUEL_PROVIDER_URL is not set');
   }
 
-  const PRIVATE_KEY = process.env.PRIVATE_KEY;
-  if (!PRIVATE_KEY) {
-    throw new Error('PRIVATE_KEY is not set');
+  const PRIVATE_KEYS = process.env.PRIVATE_KEYS;
+  if (!PRIVATE_KEYS) {
+    throw new Error('PRIVATE_KEYS is not set');
   }
 
   const provider = new Provider(FUEL_PROVIDER_URL);
-  const wallet = Wallet.fromPrivateKey(PRIVATE_KEY, provider);
+  const wallets = PRIVATE_KEYS.split(',').map((privateKey) =>
+    Wallet.fromPrivateKey(privateKey, provider)
+  );
 
   // Transfer 1 Eth
   const { status } = await (
-    await wallet.transfer(address, bn(100000000))
+    await wallets[0].transfer(address, bn(100000000))
   ).waitForResult();
 
   if (status !== 'success') {
