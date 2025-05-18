@@ -58,7 +58,7 @@ const main = async () => {
   console.log('order predicate address', orderPredicate.address);
 
   const scriptRequest = new ScriptTransactionRequest();
-  userWallet.addTransfer(scriptRequest,{
+  userWallet.addTransfer(scriptRequest, {
     destination: orderPredicate.address,
     amount: sellTokenAmount,
     assetId: sellTokenAssetId.bits,

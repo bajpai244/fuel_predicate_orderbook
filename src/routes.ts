@@ -42,7 +42,6 @@ export const createRoutes = (provider: Provider, walletPool: WalletPool) => {
   };
 
   const fillOrder: RequestHandler = async (req, res) => {
-
     const start = process.hrtime.bigint();
 
     try {
@@ -61,7 +60,7 @@ export const createRoutes = (provider: Provider, walletPool: WalletPool) => {
         buyTokenName,
         predicateAddress,
         minimalBuyAmount,
-        predicateScriptRequest
+        predicateScriptRequest,
       } = req.body;
       if (
         !sellTokenName ||
@@ -89,7 +88,6 @@ export const createRoutes = (provider: Provider, walletPool: WalletPool) => {
         return;
       }
 
-
       const sellTokenAmount = new BN(sellTokenAmountString);
 
       const sellContractId =
@@ -110,32 +108,48 @@ export const createRoutes = (provider: Provider, walletPool: WalletPool) => {
         assets[buyTokenName.toLowerCase() as keyof typeof assets];
       const buyAssetId = createAssetId(buyContractId, ZeroBytes32);
 
-      const predicateScriptTransactionRequest = ScriptTransactionRequest.from(predicateScriptRequest);
+      const predicateScriptTransactionRequest = ScriptTransactionRequest.from(
+        predicateScriptRequest
+      );
 
       // transfer assets to the predicate
       console.log('transferring sell token to order predicate');
-      const {id: predicateTransactionId, } = await (await provider.sendTransaction(predicateScriptTransactionRequest)).waitForPreConfirmation();
+      const predicateTransactionTimerStart = process.hrtime.bigint();
+      const { id: predicateTransactionId } = await (
+        await provider.sendTransaction(predicateScriptTransactionRequest)
+      ).waitForPreConfirmation();
       console.log('sell token transferred to order predicate');
+      const predicateTransactionDuration =
+        Number(process.hrtime.bigint() - predicateTransactionTimerStart) /
+        1000000; // Convert to milliseconds
 
-
+      const sellTokenPriceTimerStart = process.hrtime.bigint();
       const sellTokenPrice = await apiClient.getTokenPrice(sellTokenName);
+      const sellTokenPriceDuration =
+        Number(process.hrtime.bigint() - sellTokenPriceTimerStart) / 1000000; // Convert to milliseconds
       const totalSellTokenAmountUSDC = sellTokenAmount.mul(sellTokenPrice);
 
       console.log('totalOutputAmountUSDC', totalSellTokenAmountUSDC);
 
+      const buyTokenPriceTimerStart = process.hrtime.bigint();
       const buyTokenPrice = await apiClient.getTokenPrice(buyTokenName);
+      const buyTokenPriceDuration =
+        Number(process.hrtime.bigint() - buyTokenPriceTimerStart) / 1000000; // Convert to milliseconds
       const buyTokenAmount = new BN(
         Math.floor(totalSellTokenAmountUSDC.toNumber() / buyTokenPrice)
       );
 
       const totalOutputAmount = buyTokenAmount;
 
+      const buyResourcesTimerStart = process.hrtime.bigint();
       const buyResources = await wallet.getResourcesToSpend([
         {
           assetId: buyAssetId.bits,
           amount: buyTokenAmount,
         },
       ]);
+      const buyResourcesDuration =
+        Number(process.hrtime.bigint() - buyResourcesTimerStart) / 1000000; // Convert to milliseconds
 
       const orderPredicate = new OrderbookPredicate({
         configurableConstants: {
@@ -163,6 +177,7 @@ export const createRoutes = (provider: Provider, walletPool: WalletPool) => {
       //   outputIndex: 0
       // }));
 
+      const getSellResourcesTimerStart = process.hrtime.bigint();
       const sellResource = (
         await orderPredicate.getResourcesToSpend([
           {
@@ -173,6 +188,8 @@ export const createRoutes = (provider: Provider, walletPool: WalletPool) => {
       ).find(({ amount }) => {
         return amount.gte(sellTokenAmount);
       });
+      const getSellResourcesDuration =
+        Number(process.hrtime.bigint() - getSellResourcesTimerStart) / 1000000; // Convert to milliseconds
 
       if (!sellResource) {
         res.status(400).json({
@@ -186,14 +203,28 @@ export const createRoutes = (provider: Provider, walletPool: WalletPool) => {
       scriptRequest.addResource(sellResource);
       scriptRequest.addResources(buyResources);
 
-      scriptRequest.addCoinOutput(Address.fromAddressOrString(recepientAddress), buyTokenAmount, buyAssetId.bits);
-      scriptRequest.addCoinOutput(wallet.address, sellTokenAmount, sellAssetId.bits);
+      scriptRequest.addCoinOutput(
+        Address.fromAddressOrString(recepientAddress),
+        buyTokenAmount,
+        buyAssetId.bits
+      );
+      scriptRequest.addCoinOutput(
+        wallet.address,
+        sellTokenAmount,
+        sellAssetId.bits
+      );
 
+      const estimateAndFundTimerStart = process.hrtime.bigint();
       await scriptRequest.estimateAndFund(wallet);
+      const estimateAndFundDuration =
+        Number(process.hrtime.bigint() - estimateAndFundTimerStart) / 1000000; // Convert to milliseconds
 
+      const sendTransactionTimerStart = process.hrtime.bigint();
       const result = await (
         await wallet.sendTransaction(scriptRequest)
       ).waitForPreConfirmation();
+      const sendTransactionDuration =
+        Number(process.hrtime.bigint() - sendTransactionTimerStart) / 1000000; // Convert to milliseconds
 
       console.log('transactionId', result.id);
 
@@ -201,6 +232,15 @@ export const createRoutes = (provider: Provider, walletPool: WalletPool) => {
         status: 'success',
         transactionId: result.id,
       });
+
+      console.log('duration breakdown:');
+      console.log('predicate transaction', predicateTransactionDuration);
+      console.log('sell token price', sellTokenPriceDuration);
+      console.log('buy token price', buyTokenPriceDuration);
+      console.log('buy resources', buyResourcesDuration);
+      console.log('get sell resources', getSellResourcesDuration);
+      console.log('estimate and fund', estimateAndFundDuration);
+      console.log('send transaction', sendTransactionDuration);
     } catch (error) {
       console.error(error);
       res.status(500).json({
