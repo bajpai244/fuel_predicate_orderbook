@@ -3,12 +3,18 @@ import {
   Address,
   BN,
   createAssetId,
+  hexlify,
+  InputCoinCoder,
   InputType,
   Provider,
+  ScriptRequest,
   ScriptTransactionRequest,
+  UtxoIdCoder,
   ZeroBytes32,
+  type Coin,
+  type InputCoin,
 } from 'fuels';
-import { DummyStablecoin } from '../out';
+import { DummyStablecoin, OrderbookPredicate } from '../out';
 import { PythApiClient } from './lib';
 import assets from '../assets.json';
 import { ScriptRequestSchema, setRequestFields } from './schema';
@@ -36,6 +42,9 @@ export const createRoutes = (provider: Provider, walletPool: WalletPool) => {
   };
 
   const fillOrder: RequestHandler = async (req, res) => {
+
+    const start = process.hrtime.bigint();
+
     try {
       const wallet = await walletPool.getWallet();
       if (!wallet) {
@@ -48,38 +57,27 @@ export const createRoutes = (provider: Provider, walletPool: WalletPool) => {
       const {
         sellTokenName,
         sellTokenAmount: sellTokenAmountString,
-        scriptRequest,
         recepientAddress,
         buyTokenName,
+        predicateAddress,
+        minimalBuyAmount,
+        predicateScriptRequest
       } = req.body;
       if (
         !sellTokenName ||
-        !scriptRequest ||
         !sellTokenAmountString ||
         !recepientAddress ||
-        !buyTokenName
+        !buyTokenName ||
+        !predicateAddress ||
+        !minimalBuyAmount ||
+        !predicateScriptRequest
       ) {
         res.status(400).json({
           error:
-            'sellTokenName, scriptRequest, sellTokenAmount and recepientAddress are required',
+            'sellTokenName, sellTokenAmount, recepientAddress, buyTokenName, predicateAddress, minimalBuyAmount and predicateScriptRequest are required',
         });
         return;
       }
-
-      const sellTokenAmount = new BN(sellTokenAmountString);
-
-      const { success, error, data } =
-        ScriptRequestSchema.safeParse(scriptRequest);
-
-      if (!success) {
-        res.status(400).json({
-          error: 'Invalid request body',
-        });
-        return;
-      }
-
-      const request = new ScriptTransactionRequest();
-      setRequestFields(request, data as z.infer<typeof ScriptRequestSchema>);
 
       const sellTokenExists = await apiClient.tokenExists(
         sellTokenName.toLowerCase()
@@ -90,6 +88,9 @@ export const createRoutes = (provider: Provider, walletPool: WalletPool) => {
         });
         return;
       }
+
+
+      const sellTokenAmount = new BN(sellTokenAmountString);
 
       const sellContractId =
         assets[sellTokenName.toLowerCase() as keyof typeof assets];
@@ -104,46 +105,27 @@ export const createRoutes = (provider: Provider, walletPool: WalletPool) => {
         });
         return;
       }
+
       const buyContractId =
         assets[buyTokenName.toLowerCase() as keyof typeof assets];
       const buyAssetId = createAssetId(buyContractId, ZeroBytes32);
 
-      let inputAmount = new BN(0);
+      const predicateScriptTransactionRequest = ScriptTransactionRequest.from(predicateScriptRequest);
 
-      const baseAssetId = await provider.getBaseAssetId();
-      request.inputs.forEach((i) => {
-        if (i.type === InputType.Coin) {
-          if (i.assetId !== sellAssetId.bits && i.assetId !== baseAssetId) {
-            res.status(400).json({
-              error: 'Invalid input asset id',
-            });
-            return;
-          }
+      // transfer assets to the predicate
+      console.log('transferring sell token to order predicate');
+      const {id: predicateTransactionId, } = await (await provider.sendTransaction(predicateScriptTransactionRequest)).waitForPreConfirmation();
+      console.log('sell token transferred to order predicate');
 
-          inputAmount = inputAmount.add(new BN(i.amount));
-        } else {
-          res.status(400).json({
-            error: 'Invalid input type, only coin inputs are supported',
-          });
-          return;
-        }
-      });
-
-      if (inputAmount.lt(sellTokenAmount)) {
-        res.status(400).json({
-          error: 'Not enough funds in inputs',
-        });
-        return;
-      }
 
       const sellTokenPrice = await apiClient.getTokenPrice(sellTokenName);
-      const totalOutputAmountUSDC = sellTokenAmount.mul(sellTokenPrice);
+      const totalSellTokenAmountUSDC = sellTokenAmount.mul(sellTokenPrice);
 
-      console.log('totalOutputAmountUSDC', totalOutputAmountUSDC);
+      console.log('totalOutputAmountUSDC', totalSellTokenAmountUSDC);
 
-      let buyTokenPrice = await apiClient.getTokenPrice(buyTokenName);
-      let buyTokenAmount = new BN(
-        Math.floor(totalOutputAmountUSDC.toNumber() / buyTokenPrice)
+      const buyTokenPrice = await apiClient.getTokenPrice(buyTokenName);
+      const buyTokenAmount = new BN(
+        Math.floor(totalSellTokenAmountUSDC.toNumber() / buyTokenPrice)
       );
 
       const totalOutputAmount = buyTokenAmount;
@@ -151,51 +133,73 @@ export const createRoutes = (provider: Provider, walletPool: WalletPool) => {
       const buyResources = await wallet.getResourcesToSpend([
         {
           assetId: buyAssetId.bits,
-          amount: totalOutputAmount,
+          amount: buyTokenAmount,
         },
       ]);
 
-      request.addResources(buyResources);
-      request.addCoinOutput(
-        Address.fromB256(recepientAddress),
-        totalOutputAmount,
-        buyAssetId.bits
-      );
-      request.addChangeOutput(wallet.address, buyAssetId.bits);
-
-      request.maxFee = new BN(0);
-      request.gasLimit = new BN(0);
-
-      const { gasLimit, maxFee } = await provider.estimateTxGasAndFee({
-        transactionRequest: request,
+      const orderPredicate = new OrderbookPredicate({
+        configurableConstants: {
+          ASSET_ID_GET: buyAssetId.bits,
+          ASSET_ID_SEND: sellAssetId.bits,
+          MINIMAL_OUTPUT_AMOUNT: minimalBuyAmount,
+          RECEPIENT: recepientAddress,
+        },
+        data: [1],
+        provider,
       });
 
-      request.gasLimit = gasLimit;
-      request.maxFee = maxFee;
-
-      const signedRequest = await wallet.signTransaction(request);
-
-      let witnessIndex = -1;
-      request.inputs.forEach((i) => {
-        if (i.type === InputType.Coin) {
-          if (i.assetId === buyAssetId.bits) {
-            witnessIndex = i.witnessIndex;
-          }
-        }
-      });
-
-      if (witnessIndex === -1) {
+      const orderPredicateAddress = orderPredicate.address;
+      if (orderPredicateAddress.toB256().toLowerCase() !== predicateAddress) {
         res.status(400).json({
-          error: 'Not enough buy token in inputs',
+          error: `Invalid predicate address, expected ${predicateAddress} but got ${orderPredicateAddress}`,
         });
         return;
       }
 
-      request.witnesses[witnessIndex] = signedRequest;
+      // const utxoIdCoder = new UtxoIdCoder();
+      // const sellUtxoId = hexlify(utxoIdCoder.encode({
+      //   transactionId: predicateTransactionId,
+      //   // It is a 1 input 1 output transaction
+      //   outputIndex: 0
+      // }));
+
+      const sellResource = (
+        await orderPredicate.getResourcesToSpend([
+          {
+            assetId: sellAssetId.bits,
+            amount: sellTokenAmount,
+          },
+        ])
+      ).find(({ amount }) => {
+        return amount.gte(sellTokenAmount);
+      });
+
+      if (!sellResource) {
+        res.status(400).json({
+          error: 'no sell resources found',
+        });
+        return;
+      }
+
+      const scriptRequest = new ScriptTransactionRequest();
+
+      scriptRequest.addResource(sellResource);
+      scriptRequest.addResources(buyResources);
+
+      scriptRequest.addCoinOutput(Address.fromAddressOrString(recepientAddress), buyTokenAmount, buyAssetId.bits);
+      scriptRequest.addCoinOutput(wallet.address, sellTokenAmount, sellAssetId.bits);
+
+      await scriptRequest.estimateAndFund(wallet);
+
+      const result = await (
+        await wallet.sendTransaction(scriptRequest)
+      ).waitForPreConfirmation();
+
+      console.log('transactionId', result.id);
 
       res.status(200).json({
         status: 'success',
-        request: request.toJSON(),
+        transactionId: result.id,
       });
     } catch (error) {
       console.error(error);
@@ -204,6 +208,10 @@ export const createRoutes = (provider: Provider, walletPool: WalletPool) => {
         message: 'Failed to fill order',
       });
     }
+
+    const end = process.hrtime.bigint();
+    const duration = Number(end - start) / 1000000; // Convert to milliseconds
+    console.log(`${req.method} ${req.url} - ${duration.toFixed(2)}ms`);
   };
 
   const getPrice: RequestHandler = async (req, res) => {

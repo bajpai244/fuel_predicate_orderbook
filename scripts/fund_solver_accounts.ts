@@ -18,9 +18,14 @@ const main = async () => {
 
   const fundingAccount = wallets[0];
 
+  console.log('fundingAccount', fundingAccount.address.toB256());
+  console.log('funding account balance', await fundingAccount.getBalance());
+
   for (const wallet of wallets) {
     if (!wallet.address.equals(fundingAccount.address)) {
-      await fundingAccount.transfer(wallet.address, bn(100000000));
+      await (
+        await fundingAccount.transfer(wallet.address, bn(10000000))
+      ).waitForResult();
     }
   }
 
