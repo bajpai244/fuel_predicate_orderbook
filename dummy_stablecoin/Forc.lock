@@ -2,13 +2,13 @@
 name = "dummy_stablecoin"
 source = "member"
 dependencies = [
-    "standards git+https://github.com/FuelLabs/sway-standards?branch=master#fefecb94f9e686c8f323ac272524e7240f1ccc5e",
+    "standards git+https://github.com/FuelLabs/sway-standards?branch=master#5debf1143ca1e81012418717495acdd794f69040",
     "std",
 ]
 
 [[package]]
 name = "standards"
-source = "git+https://github.com/FuelLabs/sway-standards?branch=master#fefecb94f9e686c8f323ac272524e7240f1ccc5e"
+source = "git+https://github.com/FuelLabs/sway-standards?branch=master#5debf1143ca1e81012418717495acdd794f69040"
 dependencies = [
     "std",
     "sway_libs",

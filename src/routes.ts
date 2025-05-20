@@ -158,7 +158,7 @@ export const createRoutes = (provider: Provider, walletPool: WalletPool) => {
           MINIMAL_OUTPUT_AMOUNT: minimalBuyAmount,
           RECEPIENT: recepientAddress,
         },
-        data: [1],
+        data: [2],
         provider,
       });
 
@@ -219,6 +219,25 @@ export const createRoutes = (provider: Provider, walletPool: WalletPool) => {
       const estimateAndFundDuration =
         Number(process.hrtime.bigint() - estimateAndFundTimerStart) / 1000000; // Convert to milliseconds
 
+      const buyOutputIndex = scriptRequest.outputs.findIndex((output) => {
+        if (output.type === 0) {
+          if (output.assetId === buyAssetId.bits && output.amount === buyTokenAmount) {
+            return true;
+          }
+        }
+        return false;
+      });
+
+      if (buyOutputIndex === -1) {
+        res.status(500).json({
+          error: 'Buy output not found',
+        });
+        return;
+      }
+
+      console.log('buy output index: ', buyOutputIndex);
+
+
       const sendTransactionTimerStart = process.hrtime.bigint();
       const result = await (
         await wallet.sendTransaction(scriptRequest)
@@ -231,6 +250,7 @@ export const createRoutes = (provider: Provider, walletPool: WalletPool) => {
       res.status(200).json({
         status: 'success',
         transactionId: result.id,
+        buyTokenAmount: buyTokenAmount.toString()
       });
 
       console.log('duration breakdown:');

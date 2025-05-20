@@ -43,7 +43,7 @@ const main = async () => {
   const buyTokenAssetId = createAssetId(assets[buyTokenName], ZeroBytes32);
 
   // TODO: we should query the price API to set this up
-  const minimalBuyAmount = new BN(0);
+  const minimalBuyAmount = new BN(10);
 
   const orderPredicate = new OrderbookPredicate({
     configurableConstants: {
@@ -78,6 +78,7 @@ const main = async () => {
   });
 
   console.log('transactionId', data.transactionId);
+  console.log('buyTokenAmount', data.buyTokenAmount);
 };
 
 main();

@@ -33,11 +33,23 @@ fn main(out_index: u64, // this is the input index of the asset owned by the rec
     let predicate_address = predicate_address().unwrap();
     let out_asset = output_asset_id(out_index).unwrap();
     let output_amount = output_amount(out_index).unwrap();
-    if out_asset != asset_id_get
-        || output_amount < MINIMAL_OUTPUT_AMOUNT
+
+    
+    // NOTE: this fails, but the conditions individually are correct
+    // if out_asset != asset_id_get || output_amount < MINIMAL_OUTPUT_AMOUNT { 
+    //     return false;
+    // }
+    
+    if out_asset != asset_id_get 
     {
         return false;
     }
+
+    if output_amount < MINIMAL_OUTPUT_AMOUNT {
+        return false;
+    }
+    
+    
     // check that only the asset_id_send is being used in the transaction from the predicate
     let mut i = 0;
     while i < in_count {
