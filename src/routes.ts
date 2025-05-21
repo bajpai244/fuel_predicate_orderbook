@@ -155,13 +155,13 @@ export const createRoutes = (provider: Provider, walletPool: WalletPool) => {
         configurableConstants: {
           ASSET_ID_GET: buyAssetId.bits,
           ASSET_ID_SEND: sellAssetId.bits,
-          MINIMAL_OUTPUT_AMOUNT: minimalBuyAmount,
+          MINIMAL_OUTPUT_AMOUNT: new BN(minimalBuyAmount),
           RECEPIENT: recepientAddress,
         },
         data: [2],
         provider,
       });
-      
+
       console.log('ASSET_ID_GET', buyAssetId.bits);
       console.log('ASSET_ID_SEND', sellAssetId.bits);
       console.log('MINIMAL_OUTPUT_AMOUNT', minimalBuyAmount);
@@ -229,7 +229,10 @@ export const createRoutes = (provider: Provider, walletPool: WalletPool) => {
 
       const buyOutputIndex = scriptRequest.outputs.findIndex((output) => {
         if (output.type === 0) {
-          if (output.assetId === buyAssetId.bits && output.amount === buyTokenAmount) {
+          if (
+            output.assetId === buyAssetId.bits &&
+            output.amount === buyTokenAmount
+          ) {
             return true;
           }
         }
@@ -245,7 +248,6 @@ export const createRoutes = (provider: Provider, walletPool: WalletPool) => {
 
       console.log('buy output index: ', buyOutputIndex);
 
-
       const sendTransactionTimerStart = process.hrtime.bigint();
       const result = await (
         await wallet.sendTransaction(scriptRequest)
@@ -258,7 +260,7 @@ export const createRoutes = (provider: Provider, walletPool: WalletPool) => {
       res.status(200).json({
         status: 'success',
         transactionId: result.id,
-        buyTokenAmount: buyTokenAmount.toString()
+        buyTokenAmount: buyTokenAmount.toString(),
       });
 
       console.log('duration breakdown:');
