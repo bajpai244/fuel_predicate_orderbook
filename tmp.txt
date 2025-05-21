@@ -1,6 +1,18 @@
-# exchange.ts
-
-sell token price <BN: 0x1e682927f4c>
-buy token price <BN: 0x3b99919e>
-sell token amount 1
-buy token amount <BN: 0x1e682927f4c>
+ASSET_ID_GET 0x93d83b17dc254399548ec2f7654b332de629688fb70ae5a5030b6212dd102e10
+ASSET_ID_SEND 0xd5c117a69f81ca3ff17475cca861a8b823e82de7a43f38b7247e7b941aaee23a
+MINIMAL_OUTPUT_AMOUNT <BN: 0x0>
+RECEPIENT 0x71a3d824760977f0c51bddee0c80eb2b0d00f1dc96b040206011d02649a2a032
+order predicate address _Address {
+  [0mb256Address[2m:[0m [0m[32m[0m[32m"0xa84c0e5bd8956b96b5001cf318804bebb3240a8f5e4bba027f83cf9eaaa349ba"[0m[0m[0m[2m,[0m
+  [0mtoChecksum[2m:[0m [36m[Function: toChecksum][0m[0m[2m,[0m
+  [0mtoAddress[2m:[0m [36m[Function: toAddress][0m[0m[2m,[0m
+  [0mtoB256[2m:[0m [36m[Function: toB256][0m[0m[2m,[0m
+  [0mtoBytes[2m:[0m [36m[Function: toBytes][0m[0m[2m,[0m
+  [0mtoHexString[2m:[0m [36m[Function: toHexString][0m[0m[2m,[0m
+  [0mtoString[2m:[0m [36m[Function: toString][0m[0m[2m,[0m
+  [0mtoJSON[2m:[0m [36m[Function: toJSON][0m[0m[2m,[0m
+  [0mtoEvmAddress[2m:[0m [36m[Function: toEvmAddress][0m[0m[2m,[0m
+  [0mtoAssetId[2m:[0m [36m[Function: toAssetId][0m[0m[2m,[0m
+  [0mvalueOf[2m:[0m [36m[Function: valueOf][0m[0m[2m,[0m
+  [0mequals[2m:[0m [36m[Function: equals][0m[0m[2m,[0m
+}

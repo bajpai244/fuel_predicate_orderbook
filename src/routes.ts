@@ -168,6 +168,9 @@ export const createRoutes = (provider: Provider, walletPool: WalletPool) => {
       console.log('RECEPIENT', recepientAddress);
 
       const orderPredicateAddress = orderPredicate.address;
+
+      console.log('predicateAddress', predicateAddress);
+      console.log('orderPredicateAddress', orderPredicateAddress);
       if (orderPredicateAddress.toB256().toLowerCase() !== predicateAddress) {
         res.status(400).json({
           error: `Invalid predicate address, expected ${predicateAddress} but got ${orderPredicateAddress}`,

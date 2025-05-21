@@ -13,8 +13,8 @@ import { OrderbookPredicate } from '../out';
 // it sells 1 ETH for market price
 const main = async () => {
 
-  const SERVER_URL = 'http://localhost:3000';
-  // const SERVER_URL = 'https://fuelstation-mainnet.xyz';
+  // const SERVER_URL = 'http://localhost:3000';
+  const SERVER_URL = 'https://fuelstation-mainnet.xyz';
 
   const FUEL_PROVIDER_URL = process.env.FUEL_PROVIDER_URL;
   if (!FUEL_PROVIDER_URL) {
@@ -59,10 +59,10 @@ const main = async () => {
     provider,
   });
 
-  console.log('sellTokenAssetId', sellTokenAssetId.bits);
-  console.log('buyTokenAssetId', buyTokenAssetId.bits);
-  console.log('minimalBuyAmount', minimalBuyAmount);
-  console.log('recepientAddress', userWallet.address.b256Address);
+  console.log('ASSET_ID_GET', buyTokenAssetId.bits);
+  console.log('ASSET_ID_SEND', sellTokenAssetId.bits);
+  console.log('MINIMAL_OUTPUT_AMOUNT', minimalBuyAmount);
+  console.log('RECEPIENT', userWallet.address.b256Address);
 
   console.log('order predicate address', orderPredicate.address);
 
