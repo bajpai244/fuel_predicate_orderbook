@@ -161,6 +161,11 @@ export const createRoutes = (provider: Provider, walletPool: WalletPool) => {
         data: [2],
         provider,
       });
+      
+      console.log('ASSET_ID_GET', buyAssetId.bits);
+      console.log('ASSET_ID_SEND', sellAssetId.bits);
+      console.log('MINIMAL_OUTPUT_AMOUNT', minimalBuyAmount);
+      console.log('RECEPIENT', recepientAddress);
 
       const orderPredicateAddress = orderPredicate.address;
       if (orderPredicateAddress.toB256().toLowerCase() !== predicateAddress) {

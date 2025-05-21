@@ -12,6 +12,10 @@ import { OrderbookPredicate } from '../out';
 
 // it sells 1 ETH for market price
 const main = async () => {
+
+  const SERVER_URL = 'http://localhost:3000';
+  // const SERVER_URL = 'https://fuelstation-mainnet.xyz';
+
   const FUEL_PROVIDER_URL = process.env.FUEL_PROVIDER_URL;
   if (!FUEL_PROVIDER_URL) {
     throw new Error('FUEL_PROVIDER_URL is not set');
@@ -43,7 +47,7 @@ const main = async () => {
   const buyTokenAssetId = createAssetId(assets[buyTokenName], ZeroBytes32);
 
   // TODO: we should query the price API to set this up
-  const minimalBuyAmount = new BN(10);
+  const minimalBuyAmount = new BN(0);
 
   const orderPredicate = new OrderbookPredicate({
     configurableConstants: {
@@ -54,6 +58,11 @@ const main = async () => {
     },
     provider,
   });
+
+  console.log('sellTokenAssetId', sellTokenAssetId.bits);
+  console.log('buyTokenAssetId', buyTokenAssetId.bits);
+  console.log('minimalBuyAmount', minimalBuyAmount);
+  console.log('recepientAddress', userWallet.address.b256Address);
 
   console.log('order predicate address', orderPredicate.address);
 
@@ -67,7 +76,7 @@ const main = async () => {
   await scriptRequest.estimateAndFund(userWallet);
   await userWallet.populateTransactionWitnessesSignature(scriptRequest);
 
-  const { data } = await axios.post('http://localhost:3000/fill-order', {
+  const { data } = await axios.post(`${SERVER_URL}/fill-order`, {
     sellTokenName,
     sellTokenAmount: sellTokenAmount.toString(),
     recepientAddress: userWallet.address.b256Address,
