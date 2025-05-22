@@ -53,6 +53,8 @@ export const createRoutes = (provider: Provider, walletPool: WalletPool) => {
         return;
       }
 
+      console.log('wallet', wallet.address.toB256());
+
       const {
         sellTokenName,
         sellTokenAmount: sellTokenAmountString,
