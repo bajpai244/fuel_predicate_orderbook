@@ -12,8 +12,8 @@ import { OrderbookPredicate } from '../out';
 
 // it sells 1 ETH for market price
 const main = async () => {
-  const SERVER_URL = 'http://localhost:3000';
-  // const SERVER_URL = 'https://fuelstation-mainnet.xyz';
+  // const SERVER_URL = 'http://localhost:3000';
+  const SERVER_URL = 'https://fuelstation-mainnet.xyz';
 
   const FUEL_PROVIDER_URL = process.env.FUEL_PROVIDER_URL;
   if (!FUEL_PROVIDER_URL) {

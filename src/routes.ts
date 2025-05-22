@@ -139,7 +139,7 @@ export const createRoutes = (provider: Provider, walletPool: WalletPool) => {
         Math.floor(totalSellTokenAmountUSDC.toNumber() / buyTokenPrice)
       );
 
-      const totalOutputAmount = buyTokenAmount;
+      console.log('buyTokenAmount', buyTokenAmount);
 
       const buyResourcesTimerStart = process.hrtime.bigint();
       const buyResources = await wallet.getResourcesToSpend([

@@ -112,14 +112,14 @@ const main = async () => {
           },
         },
         ZeroBytes32,
-        tokenName === 'fuel' ? new BN(10).pow(18) : mintAmount.mul(200)
+        tokenName === 'fuel' ? new BN(10).pow(16) : mintAmount.mul(200)
       )
     );
 
     const calls = [userCall, ...solverCalls];
 
     for (const call of calls) {
-      await (await call.call()).waitForResult();
+      await (await call.call()).waitForPreConfirmation();
     }
 
     console.log(
