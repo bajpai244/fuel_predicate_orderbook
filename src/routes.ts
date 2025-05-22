@@ -119,7 +119,7 @@ export const createRoutes = (provider: Provider, walletPool: WalletPool) => {
       const predicateTransactionTimerStart = process.hrtime.bigint();
       const { id: predicateTransactionId } = await (
         await provider.sendTransaction(predicateScriptTransactionRequest)
-      ).waitForPreConfirmation();
+      ).waitForResult();
       console.log('sell token transferred to order predicate');
       const predicateTransactionDuration =
         Number(process.hrtime.bigint() - predicateTransactionTimerStart) /
